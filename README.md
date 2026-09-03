@@ -13,5 +13,8 @@ Proyecto nuevo y aislado para PaloTranscribe.
 ## Privacidad
 Los archivos de audio se procesan localmente en el navegador. La función de Supabase solo confirma que el backend del proyecto nuevo está activo.
 
-## Nota de despliegue
-Este repositorio fue creado para conectarse a un **proyecto nuevo de Lovable**. No reutilizar ni enlazar con proyectos previos.
+## Aislamiento
+Este repositorio y el proyecto Supabase asociado son nuevos. No reutilizar ni enlazar con proyectos previos.
+
+## Lovable
+Lovable actualmente no permite iniciar un proyecto importando un repositorio GitHub existente. Si se decide usar Lovable, debe crearse un proyecto Lovable nuevo y su integración GitHub generará su propio repositorio; no se debe conectar ni modificar ningún proyecto Lovable ya existente.
