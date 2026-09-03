@@ -13,6 +13,8 @@ const MODELS: Record<ModelKey, string> = {
 let transcriber: any = null;
 let currentModel: ModelKey | null = null;
 let currentDevice = "wasm";
+let loadingPromise: Promise<void> | null = null;
+let loadingModel: ModelKey | null = null;
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
@@ -25,48 +27,69 @@ async function loadModel(modelKey: ModelKey) {
     return;
   }
 
-  if (transcriber?.dispose) {
-    try { await transcriber.dispose(); } catch {}
+  if (loadingPromise) {
+    await loadingPromise;
+    if (transcriber && currentModel === modelKey) {
+      post({ type: "ready", modelKey, device: currentDevice, cached: true });
+      return;
+    }
   }
 
-  const hasWebGPU = Boolean((self.navigator as any).gpu);
-  currentDevice = hasWebGPU ? "webgpu" : "wasm";
+  loadingModel = modelKey;
+  loadingPromise = (async () => {
+    if (transcriber?.dispose) {
+      try { await transcriber.dispose(); } catch {}
+      transcriber = null;
+      currentModel = null;
+    }
 
-  if (!hasWebGPU) {
-    try {
-      const cores = Math.max(1, Math.min(4, (self.navigator as any).hardwareConcurrency || 2));
-      (env as any).backends.onnx.wasm.numThreads = (self as any).crossOriginIsolated ? cores : 1;
-    } catch {}
-  }
+    const hasWebGPU = Boolean((self.navigator as any).gpu);
+    currentDevice = hasWebGPU ? "webgpu" : "wasm";
 
-  post({ type: "loading", modelKey, device: currentDevice });
+    if (!hasWebGPU) {
+      try {
+        const cores = Math.max(1, Math.min(4, (self.navigator as any).hardwareConcurrency || 2));
+        (env as any).backends.onnx.wasm.numThreads = (self as any).crossOriginIsolated ? cores : 1;
+      } catch {}
+    }
 
-  const dtype = hasWebGPU
-    ? { encoder_model: "fp32", decoder_model_merged: "q4" }
-    : "q8";
+    post({ type: "loading", modelKey, device: currentDevice });
 
-  transcriber = await pipeline(
-    "automatic-speech-recognition",
-    MODELS[modelKey],
-    {
-      device: currentDevice as any,
-      dtype: dtype as any,
-      progress_callback: (p: any) => {
-        post({
-          type: "model-progress",
-          modelKey,
-          status: p?.status || "",
-          file: p?.file || "",
-          progress: Number.isFinite(p?.progress) ? p.progress : null,
-          loaded: p?.loaded ?? null,
-          total: p?.total ?? null,
-        });
+    const dtype = hasWebGPU
+      ? { encoder_model: "fp32", decoder_model_merged: "q4" }
+      : "q8";
+
+    const next = await pipeline(
+      "automatic-speech-recognition",
+      MODELS[modelKey],
+      {
+        device: currentDevice as any,
+        dtype: dtype as any,
+        progress_callback: (p: any) => {
+          post({
+            type: "model-progress",
+            modelKey,
+            status: p?.status || "",
+            file: p?.file || "",
+            progress: Number.isFinite(p?.progress) ? p.progress : null,
+            loaded: p?.loaded ?? null,
+            total: p?.total ?? null,
+          });
+        },
       },
-    },
-  );
+    );
 
-  currentModel = modelKey;
-  post({ type: "ready", modelKey, device: currentDevice, cached: false });
+    transcriber = next;
+    currentModel = modelKey;
+    post({ type: "ready", modelKey, device: currentDevice, cached: false });
+  })();
+
+  try {
+    await loadingPromise;
+  } finally {
+    loadingPromise = null;
+    loadingModel = null;
+  }
 }
 
 self.onmessage = async (event: MessageEvent) => {
@@ -101,6 +124,7 @@ self.onmessage = async (event: MessageEvent) => {
     post({
       type: "error",
       id: msg?.id,
+      modelKey: msg?.modelKey ?? loadingModel,
       message: error instanceof Error ? error.message : String(error),
     });
   }
