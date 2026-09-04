@@ -1,20 +1,72 @@
 # PaloTranscribe
 
-Proyecto nuevo y aislado para PaloTranscribe.
+PaloTranscribe es una aplicación web de transcripción de audio/video a texto diseñada para funcionar directamente en el navegador y quedar lista para desplegarse en cualquier hosting compatible con Vite.
+
+## Estado
+
+✅ Proyecto completo en GitHub  
+✅ Build validado con GitHub Actions  
+✅ TypeScript + Vite compilan correctamente  
+✅ Supabase nuevo y aislado conectado únicamente para health/config  
+✅ Sin dependencia de un proveedor de hosting específico
+
+## Funciones
+
+- Hasta 20 archivos por sesión.
+- Audio y video: M4A, MP3, WAV, AAC, OGG, FLAC, MP4, MOV y WebM.
+- Whisper local mediante `@huggingface/transformers`.
+- Modelos Tiny, Base y Small.
+- WebGPU cuando el dispositivo lo soporta.
+- WASM como respaldo.
+- Procesamiento por bloques para reducir consumo de memoria.
+- Interfaz responsive para iPhone, iPad, Android y escritorio.
+- Español como idioma principal.
+- Modo médico y normalización con glosario personalizado.
+- Si un archivo falla, continúa con los demás.
+- Nombre personalizado para el archivo final.
+- Descarga del resultado completo en TXT.
+- Diseño PaloTranscribe original con hero “para Paloma mi novia ❤️”.
 
 ## Arquitectura
-- Frontend: React + Vite.
-- Transcripción: Whisper en el navegador con `@huggingface/transformers`.
-- Aceleración: WebGPU cuando está disponible; WASM como respaldo.
-- Decodificación de audio: Mediabunny, por fragmentos para reducir el uso de RAM.
-- Backend conectado: Supabase **PaloTranscribe** (`dpnjavicsonidjjuwkug`) únicamente para health/config. Los audios no se suben a Supabase.
-- Modelos: Whisper Tiny, Base y Small multilingües.
 
-## Privacidad
-Los archivos de audio se procesan localmente en el navegador. La función de Supabase solo confirma que el backend del proyecto nuevo está activo.
+- Frontend: React + Vite + TypeScript.
+- Inferencia: Whisper en Web Worker.
+- Decodificación: Mediabunny.
+- Aceleración: WebGPU / WASM.
+- Supabase autorizado: `dpnjavicsonidjjuwkug`.
+- Función de health: `palotranscribe-health`.
+
+Los archivos de audio no se suben a Supabase para transcribirse. La inferencia se ejecuta en el navegador del usuario.
+
+## Desarrollo
+
+```bash
+npm install
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+La salida lista para producción se genera en `dist/`.
+
+## Validación automática
+
+El workflow `.github/workflows/build.yml` ejecuta automáticamente la instalación de dependencias y `npm run build` en cada push a `main` y en pull requests.
+
+## Despliegue
+
+El repositorio no está atado a Lovable, Emergent ni a otro constructor. Puede conectarse directamente a un proveedor de hosting que soporte Vite/SPA y publicar la carpeta `dist/`.
+
+Configuración típica:
+
+- Build command: `npm run build`
+- Output directory: `dist`
+- Node: 22
 
 ## Aislamiento
-Este repositorio y el proyecto Supabase asociado son nuevos. No reutilizar ni enlazar con proyectos previos.
 
-## Lovable
-Lovable actualmente no permite iniciar un proyecto importando un repositorio GitHub existente. Si se decide usar Lovable, debe crearse un proyecto Lovable nuevo y su integración GitHub generará su propio repositorio; no se debe conectar ni modificar ningún proyecto Lovable ya existente.
+Este proyecto usa exclusivamente el repositorio `vrbvmw69yd-a11y/Palotranscribe` y el Supabase nuevo `dpnjavicsonidjjuwkug`. No depende de proyectos anteriores.
