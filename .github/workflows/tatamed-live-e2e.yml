@@ -1,0 +1,48 @@
+name: TataMed live PaloTranscribe verification
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  live-audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - model_index: 0
+            model_name: rapido
+            max_wait_ms: 180000
+          - model_index: 1
+            model_name: recomendado
+            max_wait_ms: 300000
+          - model_index: 2
+            model_name: pro
+            max_wait_ms: 480000
+    name: tatamed-${{ matrix.model_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install Playwright
+        run: |
+          bun add --dev playwright@1.55.0 --no-save
+          bunx playwright install --with-deps chromium
+      - name: Generate Spanish WAV sample
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y espeak
+          espeak -v es -s 135 "Hola mundo. Esta es una prueba de transcripción médica. Glasgow, ceftriaxona y CENETEC." -w /tmp/palotranscribe-test.wav
+          test -s /tmp/palotranscribe-test.wav
+      - name: Verify live TataMed
+        env:
+          APP_URL: https://modelo-primer-parcial.lovable.app
+          AUDIO_FILE: /tmp/palotranscribe-test.wav
+          MODEL_INDEX: ${{ matrix.model_index }}
+          MAX_WAIT_MS: ${{ matrix.max_wait_ms }}
+        run: bun .github/scripts/tatamed-live-e2e.mjs
